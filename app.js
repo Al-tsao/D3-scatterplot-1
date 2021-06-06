@@ -31,11 +31,14 @@ async function draw() {
   // Scales
   const xScale = d3.scaleLinear()
     .domain(d3.extent(dataset, xAccessor))
-    .range([0, dimensions.ctrWidth])
+    .rangeRound([0, dimensions.ctrWidth])
+    .clamp(true)
 
   const yScale = d3.scaleLinear()
     .domain(d3.extent(dataset, yAccessor))
-    .range([0, dimensions.ctrHeight])
+    .rangeRound([dimensions.ctrHeight, 0])
+    .nice()
+    .clamp(true)
 
 
   // Draw Circles
@@ -46,6 +49,37 @@ async function draw() {
     .attr('cy', (data) => { return yScale(yAccessor(data)) })
     .attr('r', 5)
     .attr('fill', 'red')
+
+  // Axes
+  const xAxis = d3.axisBottom(xScale)
+    .ticks(5)
+    .tickFormat((data) => { return data * 100 + '%' })
+  // .tickValues([0.4, 0.5, 0.8]);
+
+  const xAxisGroup = ctr.append('g')
+    .call(xAxis)
+    .style('transform', `translateY(${dimensions.ctrHeight}px)`)
+    .classed('axios', true)
+
+  xAxisGroup.append('text')
+    .attr('x', dimensions.ctrWidth / 2)
+    .attr('y', dimensions.margin.bottom - 10)
+    .attr('fill', 'black')
+    .text('Humidity')
+
+  const yAxis = d3.axisLeft(yScale);
+
+  const yAxisGroup = ctr.append('g')
+    .call(yAxis)
+    .classed('axios', true)
+
+  yAxisGroup.append('text')
+    .attr('x', -dimensions.ctrHeight / 2)
+    .attr('y', -dimensions.margin.left + 15)
+    .attr('fill', 'black')
+    .html('Temperature &deg; F')
+    .style('transform', 'rotate(270deg)')
+    .style('text-anchor', 'middle')
 
 }
 
