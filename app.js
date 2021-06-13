@@ -28,6 +28,8 @@ async function draw() {
   const ctr = svg.append('g')
     .attr('transform', `translate(${dimensions.margin.left},${dimensions.margin.top})`);
 
+  const tooltip = d3.select('#tooltip')
+
   // Scales
   const xScale = d3.scaleLinear()
     .domain(d3.extent(dataset, xAccessor))
@@ -49,6 +51,7 @@ async function draw() {
     .attr('cy', (data) => { return yScale(yAccessor(data)) })
     .attr('r', 5)
     .attr('fill', 'red')
+
 
   // Axes
   const xAxis = d3.axisBottom(xScale)
@@ -80,6 +83,53 @@ async function draw() {
     .html('Temperature &deg; F')
     .style('transform', 'rotate(270deg)')
     .style('text-anchor', 'middle')
+
+  const delaunay = d3.Delaunay.from(
+    dataset,
+    (d) => xScale(xAccessor(d)),
+    (d) => yScale(yAccessor(d)),
+  )
+  const voronoi = delaunay.voronoi()
+  voronoi.xmax = dimensions.ctrWidth
+  voronoi.ymax = dimensions.ctrHeight
+
+  ctr.append('g')
+    .selectAll('path')
+    .data(dataset)
+    .join('path')
+    // .attr('stroke', 'black')
+    .attr('fill', 'transparent')
+    .attr('d', (d, i) => voronoi.renderCell(i))
+    .on('mouseenter', function (event, datum) {
+      ctr.append('circle')
+        .classed('dot-hovered', true)
+        .attr('fill', '#120078')
+        .attr('r', 8)
+        .attr('cx', (data) => { return xScale(xAccessor(datum)) })
+        .attr('cy', (data) => { return yScale(yAccessor(datum)) })
+        .style('pointer-events', 'none')
+
+      tooltip.style('display', 'block')
+        .style('top', yScale(yAccessor(datum)) - 25 + "px")
+        .style('left', xScale(xAccessor(datum)) + "px")
+
+      const formatter = d3.format('.2f')
+      const dataFormatter = d3.timeFormat('%B %-d, %Y')
+
+      tooltip.select('.metric-humidity span')
+        .text(formatter(xAccessor(datum)))
+
+      tooltip.select('.metric-temp span')
+        .text(formatter(yAccessor(datum)))
+
+      tooltip.select('.metric-date')
+        .text(dataFormatter(datum.currently.time * 1000))
+    })
+    .on('mouseleave', function (event) {
+      ctr.select('.dot-hovered').remove()
+
+      tooltip.style('display', 'none')
+    })
 
 }
 
